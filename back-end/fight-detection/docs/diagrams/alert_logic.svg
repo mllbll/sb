@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-label="Fight3D alert logic">
+  <defs>
+    <style>
+      .box { fill: #ffffff; stroke: #111827; stroke-width: 2; rx: 14; }
+      .title { font: 700 18px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; fill: #111827; }
+      .text { font: 14px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; fill: #111827; }
+      .muted { fill: #374151; }
+      .arrow { stroke: #111827; stroke-width: 2.5; fill: none; marker-end: url(#m); }
+      .red { stroke: #B91C1C; }
+      .green { stroke: #047857; }
+      .badge { fill: #FEE2E2; stroke: #B91C1C; stroke-width: 1.5; rx: 999; }
+    </style>
+    <marker id="m" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12" fill="#111827" />
+    </marker>
+  </defs>
+
+  <text x="32" y="44" class="title">Fight3D — Alert UX (hold + blink + union box)</text>
+
+  <rect x="32" y="90" width="330" height="120" class="box" />
+  <text x="52" y="126" class="text"><tspan font-weight="700">IDLE</tspan></text>
+  <text x="52" y="154" class="text muted">Green boxes (per person)</text>
+  <text x="52" y="178" class="text muted">No hold active</text>
+
+  <rect x="435" y="90" width="330" height="120" class="box" />
+  <text x="455" y="126" class="text"><tspan font-weight="700">FIGHT detected</tspan></text>
+  <text x="455" y="154" class="text muted">Save frozen_boxes + frozen_score</text>
+  <text x="455" y="178" class="text muted">Set hold_until = now + 3s</text>
+
+  <rect x="838" y="90" width="330" height="120" class="box" />
+  <text x="858" y="126" class="text"><tspan font-weight="700">HOLD window</tspan> (3 seconds)</text>
+  <text x="858" y="154" class="text muted">Force FIGHT state</text>
+  <text x="858" y="178" class="text muted">Draw one union box, blink at 2 Hz</text>
+
+  <path class="arrow green" d="M362 150 L435 150" />
+  <path class="arrow red" d="M765 150 L838 150" />
+  <path class="arrow" d="M1003 210 C 1003 300 230 300 230 210" />
+
+  <rect x="890" y="238" width="220" height="34" class="badge" />
+  <text x="904" y="260" class="text">blink: on/off each 0.5s</text>
+
+  <text x="88" y="330" class="text muted">Notes: While hold is active, the overlay uses frozen values even if the detector/classifier fluctuates.</text>
+</svg>

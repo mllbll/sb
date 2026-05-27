@@ -1,0 +1,5 @@
+# Unified model/inference dependencies for local development.
+# Docker images still use each module's dedicated requirements file.
+-r back-end/crowd-detection/requirements-model.txt
+-r back-end/fight-detection/requirements-infer.txt
+-r back-end/fall-detection/requirements-infer.txt

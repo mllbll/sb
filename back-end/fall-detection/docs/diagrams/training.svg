@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-label="Fight3D training loop">
+  <defs>
+    <style>
+      .box { fill: #ffffff; stroke: #111827; stroke-width: 2; rx: 14; }
+      .title { font: 700 18px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; fill: #111827; }
+      .text { font: 14px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; fill: #111827; }
+      .muted { fill: #374151; }
+      .arrow { stroke: #111827; stroke-width: 2.5; fill: none; marker-end: url(#m); }
+    </style>
+    <marker id="m" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12" fill="#111827" />
+    </marker>
+  </defs>
+
+  <text x="32" y="44" class="title">Fight3D — Training Loop (RWF-2000 → R3D-18)</text>
+
+  <rect x="32" y="80" width="310" height="102" class="box" />
+  <text x="52" y="114" class="text"><tspan font-weight="700">Dataset</tspan></text>
+  <text x="52" y="140" class="text muted">RWF-2000: train/Fight, train/NonFight</text>
+  <text x="52" y="164" class="text muted">val/Fight, val/NonFight</text>
+
+  <rect x="372" y="80" width="310" height="102" class="box" />
+  <text x="392" y="114" class="text"><tspan font-weight="700">DataLoader</tspan></text>
+  <text x="392" y="140" class="text muted">clips: (C,T,H,W) = (3,16,224,224)</text>
+  <text x="392" y="164" class="text muted">val transforms (resize/crop/norm)</text>
+
+  <rect x="712" y="80" width="456" height="102" class="box" />
+  <text x="732" y="114" class="text"><tspan font-weight="700">Model</tspan>  torchvision.models.video.r3d_18</text>
+  <text x="732" y="140" class="text muted">num_classes=2, CrossEntropyLoss, AdamW</text>
+  <text x="732" y="164" class="text muted">AMP on CUDA (torch.amp.autocast + GradScaler)</text>
+
+  <path class="arrow" d="M342 131 L372 131" />
+  <path class="arrow" d="M682 131 L712 131" />
+
+  <rect x="32" y="242" width="540" height="120" class="box" />
+  <text x="52" y="276" class="text"><tspan font-weight="700">Train epoch</tspan></text>
+  <text x="52" y="304" class="text muted">forward → loss → backward → optimizer.step</text>
+  <text x="52" y="328" class="text muted">tracks train_loss</text>
+
+  <rect x="608" y="242" width="560" height="120" class="box" />
+  <text x="628" y="276" class="text"><tspan font-weight="700">Validation</tspan></text>
+  <text x="628" y="304" class="text muted">acc + precision/recall/F1 for Fight</text>
+  <text x="628" y="328" class="text muted">confusion matrix (tn/fp/fn/tp)</text>
+
+  <path class="arrow" d="M572 302 L608 302" />
+
+  <rect x="32" y="410" width="560" height="78" class="box" />
+  <text x="52" y="456" class="text"><tspan font-weight="700">Checkpoints</tspan>  outputs/r3d_rwf/last.pt + best.pt (by f1_fight)</text>
+
+  <rect x="628" y="410" width="540" height="78" class="box" />
+  <text x="648" y="456" class="text"><tspan font-weight="700">Logs</tspan>  outputs/r3d_rwf/metrics.json (hparams + per-epoch metrics)</text>
+
+  <path class="arrow" d="M308 362 L308 410" />
+  <path class="arrow" d="M888 362 L888 410" />
+</svg>

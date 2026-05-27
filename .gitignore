@@ -1,0 +1,62 @@
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Node / frontend
+node_modules/
+front-end/dist/
+front-end/.vite/
+
+# Local env and secrets
+.env
+.env.*
+**/.env
+**/.env.*
+**/config.yaml
+**/keys/secrets.json
+**/secrets/*
+!**/secrets/
+!**/secrets/*.example
+!**/secrets/*.example.*
+!**/secrets/README.md
+!**/secrets/.gitkeep
+
+# Data, model outputs, and local media
+runs/
+outputs/
+rwf2000/
+**/outputs/
+**/images/
+**/data/
+*.jpg
+*.jpeg
+*.png
+*.mp4
+*.avi
+
+# ML weights / checkpoints
+*.pt
+*.pth
+*.onnx
+*.engine
+
+# Local credentials
+pass.txt

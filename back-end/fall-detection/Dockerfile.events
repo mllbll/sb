@@ -1,0 +1,27 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# System deps kept minimal; build tools are usually not needed for pure-Python deps here
+RUN pip install --no-cache-dir -U pip
+
+COPY requirements-events.txt /app/requirements-events.txt
+RUN pip install --no-cache-dir -r /app/requirements-events.txt
+
+# App code + migrations
+COPY fight3d /app/fight3d
+COPY alembic /app/alembic
+COPY alembic.ini /app/alembic.ini
+
+# Default config location inside container
+ENV FIGHT3D_CONFIG=/config/config.yaml
+
+# Make repo root importable
+ENV PYTHONPATH=/app
+
+EXPOSE 8000
+
+CMD ["bash", "-lc", "alembic upgrade head && python -m fight3d.api.serve"]

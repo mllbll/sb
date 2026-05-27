@@ -1,0 +1,250 @@
+services:
+  frontend:
+    build:
+      context: ./front-end
+      dockerfile: Dockerfile
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      auth:
+        condition: service_started
+      crowd-api:
+        condition: service_healthy
+      fight-api:
+        condition: service_healthy
+      fall-api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  auth:
+    build:
+      context: ./front-end/auth-service
+      dockerfile: Dockerfile
+    environment:
+      AUTH_USER: ${AUTH_USER:-admin}
+      AUTH_PASSWORD: ${AUTH_PASSWORD:-changeme}
+    restart: unless-stopped
+
+  crowd-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${CROWD_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${CROWD_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${CROWD_POSTGRES_DB:-crowd_detection}
+    ports:
+      - "${CROWD_DB_PORT:-5434}:5432"
+    volumes:
+      - crowd_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  crowd-migrate:
+    build:
+      context: ./back-end/crowd-detection
+      dockerfile: Dockerfile.api
+    command: ["alembic", "upgrade", "head"]
+    volumes:
+      - type: bind
+        source: ${CROWD_SECRETS_FILE:-./back-end/crowd-detection/secrets/secrets.json.example}
+        target: /app/keys/secrets.json
+        read_only: true
+    depends_on:
+      crowd-db:
+        condition: service_healthy
+    restart: "no"
+
+  crowd-api:
+    build:
+      context: ./back-end/crowd-detection
+      dockerfile: Dockerfile.api
+    ports:
+      - "${CROWD_API_PORT:-8001}:8000"
+    volumes:
+      - type: bind
+        source: ${CROWD_SECRETS_FILE:-./back-end/crowd-detection/secrets/secrets.json.example}
+        target: /app/keys/secrets.json
+        read_only: true
+    depends_on:
+      crowd-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).read()"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  crowd-model:
+    build:
+      context: ./back-end/crowd-detection
+      dockerfile: Dockerfile.model
+    profiles:
+      - models
+    environment:
+      INFERENCE_ENABLED: "1"
+    volumes:
+      - type: bind
+        source: ${CROWD_SECRETS_FILE:-./back-end/crowd-detection/secrets/secrets.json.example}
+        target: /app/keys/secrets.json
+        read_only: true
+      - ./back-end/crowd-detection/model/models_yolo:/app/model/models_yolo
+      - ./back-end/crowd-detection/model/images:/app/model/images
+    depends_on:
+      crowd-migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  fight-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${FIGHT_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${FIGHT_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${FIGHT_POSTGRES_DB:-fight3d}
+    ports:
+      - "${FIGHT_DB_PORT:-5435}:5432"
+    volumes:
+      - fight_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  fight-api:
+    build:
+      context: ./back-end/fight-detection
+      dockerfile: Dockerfile.events
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${FIGHT_POSTGRES_USER:-postgres}:${FIGHT_POSTGRES_PASSWORD:-postgres}@fight-db:5432/${FIGHT_POSTGRES_DB:-fight3d}
+      FIGHT3D_CONFIG: /config/config.yaml
+    ports:
+      - "${FIGHT_API_PORT:-8002}:8000"
+    volumes:
+      - type: bind
+        source: ${FIGHT_CONFIG_FILE:-./back-end/fight-detection/secrets/config.yaml.example}
+        target: /config/config.yaml
+        read_only: true
+    depends_on:
+      fight-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).read()"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  fight-infer:
+    build:
+      context: ./back-end/fight-detection
+      dockerfile: Dockerfile.infer
+    profiles:
+      - models
+    gpus: all
+    user: "${UID:-1000}:${GID:-1000}"
+    environment:
+      FIGHT3D_CONFIG: /config/config.yaml
+      FIGHT3D_EVENTS_API: http://fight-api:8000
+      FIGHT3D_EVENTS_AUTO_CREATE_CAMERA: "1"
+      PYTHONUNBUFFERED: "1"
+      YOLO_CONFIG_DIR: /tmp
+      OPENCV_FFMPEG_CAPTURE_OPTIONS: rtsp_transport;tcp|stimeout;5000000
+      HOME: /tmp
+      FIGHT3D_YOLO_EVERY_N: "1"
+      FIGHT3D_YOLO_MAX_W: "0"
+      FIGHT3D_YOLO_IMGSZ: "640"
+    volumes:
+      - type: bind
+        source: ${FIGHT_CONFIG_FILE:-./back-end/fight-detection/secrets/config.yaml.example}
+        target: /config/config.yaml
+        read_only: true
+      - ./back-end/fight-detection/outputs:/data/outputs
+      - ./back-end/fight-detection/yolov8m.pt:/data/yolov8m.pt:ro
+    depends_on:
+      fight-api:
+        condition: service_healthy
+    command: ["python", "-u", "-m", "fight3d.infer.infer_multi_rtsp"]
+    restart: unless-stopped
+
+  fall-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${FALL_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${FALL_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${FALL_POSTGRES_DB:-fall3d}
+    ports:
+      - "${FALL_DB_PORT:-5436}:5432"
+    volumes:
+      - fall_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  fall-api:
+    build:
+      context: ./back-end/fall-detection
+      dockerfile: Dockerfile.events
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${FALL_POSTGRES_USER:-postgres}:${FALL_POSTGRES_PASSWORD:-postgres}@fall-db:5432/${FALL_POSTGRES_DB:-fall3d}
+      FIGHT3D_CONFIG: /config/config.yaml
+    ports:
+      - "${FALL_API_PORT:-8003}:8000"
+    volumes:
+      - type: bind
+        source: ${FALL_CONFIG_FILE:-./back-end/fall-detection/secrets/config.yaml.example}
+        target: /config/config.yaml
+        read_only: true
+    depends_on:
+      fall-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).read()"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  fall-infer:
+    build:
+      context: ./back-end/fall-detection
+      dockerfile: Dockerfile.infer
+    profiles:
+      - models
+    gpus: all
+    user: "${UID:-1000}:${GID:-1000}"
+    environment:
+      FIGHT3D_CONFIG: /config/config.yaml
+      FIGHT3D_EVENTS_API: http://fall-api:8000
+      FIGHT3D_EVENTS_AUTO_CREATE_CAMERA: "1"
+      PYTHONUNBUFFERED: "1"
+      YOLO_CONFIG_DIR: /tmp
+      OPENCV_FFMPEG_CAPTURE_OPTIONS: rtsp_transport;tcp|stimeout;5000000
+      HOME: /tmp
+      FIGHT3D_YOLO_EVERY_N: "1"
+      FIGHT3D_YOLO_MAX_W: "0"
+      FIGHT3D_YOLO_IMGSZ: "640"
+    volumes:
+      - type: bind
+        source: ${FALL_CONFIG_FILE:-./back-end/fall-detection/secrets/config.yaml.example}
+        target: /config/config.yaml
+        read_only: true
+      - ./back-end/fall-detection/outputs:/data/outputs
+      - ./back-end/fight-detection/yolov8m.pt:/data/yolov8m.pt:ro
+    depends_on:
+      fall-api:
+        condition: service_healthy
+    command: ["python", "-u", "-m", "fight3d.infer.infer_multi_rtsp"]
+    restart: unless-stopped
+
+volumes:
+  crowd_pgdata:
+  fight_pgdata:
+  fall_pgdata:

@@ -1,0 +1,37 @@
+services:
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    command: ["alembic", "upgrade", "head"]
+    volumes:
+      - ./keys:/app/keys
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./keys:/app/keys
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  model:
+    build:
+      context: .
+      dockerfile: Dockerfile.model
+    volumes:
+      - ./keys:/app/keys
+      - ./model/models_yolo:/app/model/models_yolo
+      - ./model/images:/app/model/images
+    restart: unless-stopped
+    environment:
+      - INFERENCE_ENABLED=1
+    depends_on:
+      migrate:
+        condition: service_completed_successfully

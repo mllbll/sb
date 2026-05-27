@@ -1,0 +1,68 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-fight3d}
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    image: fight_api
+    build:
+      context: .
+      dockerfile: Dockerfile.events
+    restart: unless-stopped
+    environment:
+      FIGHT3D_CONFIG: /config/config.yaml
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./config.yaml:/config/config.yaml:ro
+
+  infer:
+    image: fight_infer
+    build:
+      context: .
+      dockerfile: Dockerfile.infer
+    gpus: all
+    user: "${UID:-1000}:${GID:-1000}"
+    restart: unless-stopped
+    environment:
+      FIGHT3D_CONFIG: /config/config.yaml
+      FIGHT3D_EVENTS_API: http://api:8000
+      FIGHT3D_EVENTS_AUTO_CREATE_CAMERA: "1"
+      PYTHONUNBUFFERED: "1"
+      YOLO_CONFIG_DIR: /tmp
+      OPENCV_FFMPEG_CAPTURE_OPTIONS: rtsp_transport;tcp|stimeout;5000000
+      DISPLAY: ${DISPLAY}
+      QT_X11_NO_MITSHM: "1"
+      USER: alex
+      LOGNAME: alex
+      HOME: /tmp
+      FIGHT3D_YOLO_EVERY_N: "1"
+      FIGHT3D_YOLO_MAX_W: "0"
+      FIGHT3D_YOLO_IMGSZ: "640"
+    volumes:
+      - ./config.yaml:/config/config.yaml:ro
+      - ./outputs:/data/outputs
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ./yolov8m.pt:/data/yolov8m.pt:ro
+      - ./newtest.avi:/data/newtest.avi:ro
+      - ./newtest2.avi:/data/newtest2.avi:ro
+    command: ["python", "-u", "-m", "fight3d.infer.infer_multi_rtsp"]
+
+volumes:
+  pgdata:

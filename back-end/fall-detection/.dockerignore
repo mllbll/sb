@@ -1,0 +1,13 @@
+.git
+.venv
+venv
+**/.venv
+**/venv
+__pycache__
+*.pyc
+outputs
+runs
+RWF-2000
+*.mp4
+*.avi
+pass.txt

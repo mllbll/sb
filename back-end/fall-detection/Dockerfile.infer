@@ -1,0 +1,29 @@
+FROM pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime
+
+WORKDIR /app
+
+# Needed for opencv-python (libGL + glib) and video I/O
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
+    libx11-6 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxcb-xinerama0 \
+    libxkbcommon-x11-0 \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY requirements-infer.txt /app/requirements-infer.txt
+RUN pip install --no-cache-dir -r /app/requirements-infer.txt
+
+COPY fight3d /app/fight3d
+
+# Default config location inside container
+ENV FIGHT3D_CONFIG=/config/config.yaml
+
+CMD ["python", "-m", "fight3d.infer.infer_multi_rtsp"]

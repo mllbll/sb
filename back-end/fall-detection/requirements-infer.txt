@@ -1,0 +1,6 @@
+# Inference-only deps (CUDA torch/torchvision come from the base image)
+opencv-python
+numpy
+tqdm
+ultralytics
+pyyaml

@@ -1,0 +1,110 @@
+# ПК 2 — 192.168.1.20
+# Модули: fall + frontend + auth (+ ML при --profile models)
+# Точка входа для операторов: http://192.168.1.20
+#
+# Запуск из корня репозитория:
+#   docker compose -f deploy/host20/docker-compose.yml up --build -d
+#   docker compose -f deploy/host20/docker-compose.yml --profile models up -d
+#
+# Перед запуском убедитесь, что на 192.168.1.10 уже работают crowd-api :8001 и fight-api :8002
+
+name: reu-secure-host20
+
+services:
+  frontend:
+    build:
+      context: ../..
+      dockerfile: deploy/host20/Dockerfile.frontend
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      auth:
+        condition: service_started
+      fall-api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  auth:
+    build:
+      context: ../../front-end/auth-service
+      dockerfile: Dockerfile
+    environment:
+      AUTH_USER: ${AUTH_USER:-admin}
+      AUTH_PASSWORD: ${AUTH_PASSWORD:-changeme}
+    restart: unless-stopped
+
+  fall-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${FALL_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${FALL_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${FALL_POSTGRES_DB:-fall3d}
+    ports:
+      - "${FALL_DB_PORT:-5436}:5432"
+    volumes:
+      - fall_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  fall-api:
+    build:
+      context: ../../back-end/fall-detection
+      dockerfile: Dockerfile.events
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${FALL_POSTGRES_USER:-postgres}:${FALL_POSTGRES_PASSWORD:-postgres}@fall-db:5432/${FALL_POSTGRES_DB:-fall3d}
+      FIGHT3D_CONFIG: /config/config.yaml
+    ports:
+      - "${FALL_API_PORT:-8003}:8000"
+    volumes:
+      - type: bind
+        source: ${FALL_CONFIG_FILE:-../../back-end/fall-detection/secrets/config.yaml.example}
+        target: /config/config.yaml
+        read_only: true
+    depends_on:
+      fall-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).read()"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  fall-infer:
+    build:
+      context: ../../back-end/fall-detection
+      dockerfile: Dockerfile.infer
+    profiles:
+      - models
+    gpus: all
+    user: "${UID:-1000}:${GID:-1000}"
+    environment:
+      FIGHT3D_CONFIG: /config/config.yaml
+      FIGHT3D_EVENTS_API: http://fall-api:8000
+      FIGHT3D_EVENTS_AUTO_CREATE_CAMERA: "1"
+      PYTHONUNBUFFERED: "1"
+      YOLO_CONFIG_DIR: /tmp
+      OPENCV_FFMPEG_CAPTURE_OPTIONS: rtsp_transport;tcp|stimeout;5000000
+      HOME: /tmp
+      FIGHT3D_YOLO_EVERY_N: "1"
+      FIGHT3D_YOLO_MAX_W: "0"
+      FIGHT3D_YOLO_IMGSZ: "640"
+    volumes:
+      - type: bind
+        source: ${FALL_CONFIG_FILE:-../../back-end/fall-detection/secrets/config.yaml.example}
+        target: /config/config.yaml
+        read_only: true
+      - ../../back-end/fall-detection/outputs:/data/outputs
+      - ../../back-end/fall-detection/yolov8m.pt:/data/yolov8m.pt:ro
+    depends_on:
+      fall-api:
+        condition: service_healthy
+    command: ["python", "-u", "-m", "fight3d.infer.infer_multi_rtsp"]
+    restart: unless-stopped
+
+volumes:
+  fall_pgdata:

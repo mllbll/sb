@@ -1,0 +1,34 @@
+@import './fonts.css';
+@import './tailwind.css';
+@import './theme.css';
+
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Global styles for SecureVision */
+body {
+  font-family: 'JetBrains Mono', 'Inter', monospace;
+  background: #0d1117;
+  color: #e6edf3;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #30363d #161b22;
+}
+*::-webkit-scrollbar { width: 6px; height: 6px; }
+*::-webkit-scrollbar-track { background: #161b22; }
+*::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+*::-webkit-scrollbar-thumb:hover { background: #484f58; }
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}

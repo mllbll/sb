@@ -1,0 +1,15 @@
+torch
+torchvision
+opencv-python
+numpy
+tqdm
+ultralytics
+pyyaml
+
+# Events API
+fastapi
+uvicorn[standard]
+SQLAlchemy>=2.0
+asyncpg
+alembic
+pydantic>=2.0

@@ -1,0 +1,8 @@
+opencv-python-headless
+pytz
+ultralytics
+psycopg2-binary
+
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.5.0+cpu
+torchvision==0.20.0+cpu

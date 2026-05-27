@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-label="Fight3D pipeline">
+  <defs>
+    <style>
+      .box { fill: #ffffff; stroke: #111827; stroke-width: 2; rx: 14; }
+      .title { font: 700 18px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; fill: #111827; }
+      .text { font: 14px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; fill: #111827; }
+      .muted { fill: #374151; }
+      .arrow { stroke: #111827; stroke-width: 2.5; fill: none; marker-end: url(#m); }
+      .pill { fill: #F3F4F6; stroke: #111827; stroke-width: 1.5; rx: 999; }
+    </style>
+    <marker id="m" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12" fill="#111827" />
+    </marker>
+  </defs>
+
+  <text x="32" y="44" class="title">Fight3D — Inference Pipeline (video file / RTSP)</text>
+
+  <!-- Row 1 -->
+  <rect x="32" y="80" width="260" height="92" class="box" />
+  <text x="52" y="114" class="text"><tspan font-weight="700">Source</tspan></text>
+  <text x="52" y="140" class="text muted">OpenCV VideoCapture</text>
+  <text x="52" y="164" class="text muted">video.mp4 / rtsp://… / file:…</text>
+
+  <rect x="332" y="80" width="260" height="92" class="box" />
+  <text x="352" y="114" class="text"><tspan font-weight="700">Frames</tspan></text>
+  <text x="352" y="140" class="text muted">BGR frames</text>
+  <text x="352" y="164" class="text muted">buffered for clip</text>
+
+  <rect x="632" y="80" width="260" height="92" class="box" />
+  <text x="652" y="114" class="text"><tspan font-weight="700">People Detector</tspan></text>
+  <text x="652" y="140" class="text muted">Ultralytics YOLO (person)</text>
+  <text x="652" y="164" class="text muted">boxes + scores</text>
+
+  <rect x="932" y="80" width="236" height="92" class="box" />
+  <text x="952" y="114" class="text"><tspan font-weight="700">Gate</tspan></text>
+  <text x="952" y="140" class="text muted">if people &lt; people_min</text>
+  <text x="952" y="164" class="text muted">→ IDLE (skip R3D)</text>
+
+  <!-- arrows row 1 -->
+  <path class="arrow" d="M292 126 L332 126" />
+  <path class="arrow" d="M592 126 L632 126" />
+  <path class="arrow" d="M892 126 L932 126" />
+
+  <!-- Row 2 -->
+  <rect x="32" y="250" width="360" height="112" class="box" />
+  <text x="52" y="284" class="text"><tspan font-weight="700">Clip Buffer</tspan></text>
+  <text x="52" y="310" class="text muted">deque(maxlen=clip_len), default 16 frames</text>
+  <text x="52" y="334" class="text muted">compute every N frames (stride)</text>
+
+  <rect x="432" y="250" width="360" height="112" class="box" />
+  <text x="452" y="284" class="text"><tspan font-weight="700">3D CNN Classifier</tspan></text>
+  <text x="452" y="310" class="text muted">torchvision R3D-18 (2 classes)</text>
+  <text x="452" y="334" class="text muted">fight_score = softmax(logits)[Fight]</text>
+
+  <rect x="832" y="250" width="336" height="112" class="box" />
+  <text x="852" y="284" class="text"><tspan font-weight="700">Alert UX</tspan></text>
+  <text x="852" y="310" class="text muted">if fight_score ≥ threshold → FIGHT</text>
+  <text x="852" y="334" class="text muted">hold 3s + blink, union (one) box</text>
+
+  <!-- arrows row 2 -->
+  <path class="arrow" d="M1050 172 L1050 228" />
+  <path class="arrow" d="M1050 228 L392 306" />
+  <path class="arrow" d="M392 306 L432 306" />
+  <path class="arrow" d="M792 306 L832 306" />
+
+  <!-- Output -->
+  <rect x="32" y="410" width="1136" height="74" class="box" />
+  <text x="52" y="454" class="text"><tspan font-weight="700">Output</tspan>  overlay + status line + (optional) mp4 recording</text>
+
+  <path class="arrow" d="M1000 362 L1000 410" />
+
+  <!-- Pills -->
+  <rect x="54" y="198" width="180" height="34" class="pill" />
+  <text x="70" y="220" class="text">People boxes each frame</text>
+
+  <rect x="258" y="198" width="198" height="34" class="pill" />
+  <text x="274" y="220" class="text">Union box on FIGHT</text>
+</svg>
