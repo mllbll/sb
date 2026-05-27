@@ -46,6 +46,8 @@ rwf2000/
 **/outputs/
 **/images/
 **/data/
+!front-end/src/app/data/
+!front-end/src/app/data/**
 *.jpg
 *.jpeg
 *.png
