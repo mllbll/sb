@@ -13,8 +13,8 @@ name: reu-secure-host20
 services:
   frontend:
     build:
-      context: ../..
-      dockerfile: deploy/host20/Dockerfile.frontend
+      context: ../../front-end
+      dockerfile: Dockerfile.host20
     ports:
       - "${FRONTEND_PORT:-80}:80"
     depends_on:
